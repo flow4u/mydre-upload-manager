@@ -1,0 +1,54 @@
+/* Basic styles */
+.page-content {
+    padding: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.mdl-card {
+    min-height: auto;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.mdl-card__title {
+    color: #fff;
+    background-color: #3f51b5;
+}
+
+.action-card {
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,.2);
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    padding: 24px 0;
+}
+
+.form-card {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.mdl-button--file input {
+    cursor: pointer;
+    height: 100%;
+    right: 0;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    width: 300px;
+    z-index: 4;
+}

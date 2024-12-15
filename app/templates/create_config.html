@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mdl-grid">
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp form-card">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Create Configuration</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <!-- File Upload Area -->
+                <div class="file-upload-area" id="dropZone">
+                    <i class="material-icons">cloud_upload</i>
+                    <p>Drag & drop a config file or click to upload</p>
+                    <input type="file" id="fileInput" accept=".mydre" style="display: none;">
+                </div>
+                
+                <!-- PIN Input for File -->
+                <div id="pinDialog" class="pin-dialog">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="password" id="filePin" name="filePin">
+                        <label class="mdl-textfield__label" for="filePin">Enter PIN to decrypt file</label>
+                    </div>
+                    <button class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" id="decryptButton">
+                        Decrypt and Fill Form
+                    </button>
+                </div>
+
+                <!-- Main Form -->
+                <form id="config-form" class="config-form">
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="text" id="workspace_name" name="workspace_name" required>
+                        <label class="mdl-textfield__label" for="workspace_name">Workspace Name</label>
+                    </div>
+
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="text" id="workspace_key" name="workspace_key" required>
+                        <label class="mdl-textfield__label" for="workspace_key">Workspace Key</label>
+                    </div>
+
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="text" id="subscription_key" name="subscription_key" required>
+                        <label class="mdl-textfield__label" for="subscription_key">Subscription Key</label>
+                    </div>
+
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="text" id="uploader_name" name="uploader_name" required>
+                        <label class="mdl-textfield__label" for="uploader_name">Uploader Name</label>
+                    </div>
+
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
+                        <input class="mdl-textfield__input" type="password" id="pin" name="pin" pattern=".{6,}" required>
+                        <label class="mdl-textfield__label" for="pin">PIN (minimum 6 characters)</label>
+                        <span class="mdl-textfield__error">PIN must be at least 6 characters long</span>
+                    </div>
+
+                    <div class="mdl-card__actions">
+                        <button type="submit" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" disabled>
+                            Create and Download Config
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

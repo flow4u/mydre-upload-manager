@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mdl-grid">
+    <div class="mdl-cell mdl-cell--12-col">
+        <div class="mdl-card mdl-shadow--2dp form-card">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Upload Data</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                <!-- File Upload Area -->
+                <div class="file-upload-area" id="dropZone">
+                    <i class="material-icons">cloud_upload</i>
+                    <p>Drag & drop config files or click to upload</p>
+                    <input type="file" id="fileInput" accept=".mydre" multiple style="display: none;">
+                </div>
+
+                <!-- Files List -->
+                <div id="filesList" class="files-list">
+                    <!-- Files will be listed here -->
+                </div>
+
+                <!-- Workspaces Grid -->
+                <div id="workspacesGrid" class="workspaces-grid" style="display: none;">
+                    <h3 class="mdl-typography--title">Available Workspaces</h3>
+                    <div class="mdl-grid grid-header">
+                        <div class="mdl-cell mdl-cell--2-col">Workspace Name</div>
+                        <div class="mdl-cell mdl-cell--2-col">Workspace Key</div>
+                        <div class="mdl-cell mdl-cell--2-col">Subscription Key</div>
+                        <div class="mdl-cell mdl-cell--2-col">Uploader Name</div>
+                        <div class="mdl-cell mdl-cell--3-col">Source File</div>
+                        <div class="mdl-cell mdl-cell--1-col">Actions</div>
+                    </div>
+                    <div id="workspacesList">
+                        <!-- Workspaces will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PIN Dialog Template -->
+<dialog class="mdl-dialog" id="pinDialog">
+    <h4 class="mdl-dialog__title">Enter PIN</h4>
+    <div class="mdl-dialog__content">
+        <p>Enter PIN for file: <span id="currentFileName"></span></p>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+            <input class="mdl-textfield__input" type="password" id="filePin" pattern=".{6,}">
+            <label class="mdl-textfield__label" for="filePin">PIN (minimum 6 characters)</label>
+        </div>
+    </div>
+    <div class="mdl-dialog__actions">
+        <button type="button" class="mdl-button" id="decryptButton">Decrypt</button>
+        <button type="button" class="mdl-button close" id="cancelButton">Cancel</button>
+    </div>
+</dialog>
+{% endblock %} 
