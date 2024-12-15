@@ -1,59 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="mdl-grid">
-    <div class="mdl-cell mdl-cell--12-col">
-        <div class="mdl-card mdl-shadow--2dp form-card">
-            <div class="mdl-card__title">
-                <h2 class="mdl-card__title-text">Combine Configurations</h2>
-            </div>
-            <div class="mdl-card__supporting-text">
-                <!-- File Upload Area -->
-                <div class="file-upload-area" id="dropZone">
-                    <i class="material-icons">cloud_upload</i>
-                    <p>Drag & drop multiple config files or click to upload</p>
-                    <input type="file" id="fileInput" accept=".mydre" multiple style="display: none;">
+<div class="combine-config">
+    <div class="mdl-grid">
+        <div class="mdl-cell mdl-cell--12-col">
+            <div class="mdl-card mdl-shadow--2dp form-card">
+                <div class="mdl-card__title">
+                    <h2 class="mdl-card__title-text">Combine Configurations</h2>
                 </div>
-
-                <!-- Files List -->
-                <div id="filesList" class="files-list">
-                    <!-- Files will be listed here -->
-                </div>
-
-                <!-- Workspaces Grid (hidden until files are decrypted) -->
-                <div id="workspacesGrid" class="workspaces-grid" style="display: none;">
-                    <h3 class="mdl-typography--title">Workspaces to Combine</h3>
-                    <div class="mdl-grid grid-header">
-                        <div class="mdl-cell mdl-cell--3-col">Workspace Name</div>
-                        <div class="mdl-cell mdl-cell--3-col">Workspace Key</div>
-                        <div class="mdl-cell mdl-cell--2-col">Subscription Key</div>
-                        <div class="mdl-cell mdl-cell--3-col">Uploader Name</div>
-                        <div class="mdl-cell mdl-cell--1-col">Actions</div>
+                <div class="mdl-card__supporting-text">
+                    <!-- Drag & Drop Area with hidden file input -->
+                    <div class="file-upload-area" id="combineDropZone">
+                        <i class="material-icons">cloud_upload</i>
+                        <p>Drag & drop .mydre files here or click to select files</p>
                     </div>
-                    <div id="workspacesList">
-                        <!-- Workspaces will be listed here -->
-                    </div>
-                </div>
+                    <input type="file" id="combineFileInput" accept=".mydre" multiple>
 
-                <!-- Output Configuration -->
-                <div id="outputConfig" class="output-config" style="display: none;">
-                    <h3 class="mdl-typography--title">Output Configuration</h3>
-                    
-                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
-                        <input class="mdl-textfield__input" type="text" id="outputFilename" 
-                               value="combined_configs" required>
-                        <label class="mdl-textfield__label" for="outputFilename">Output Filename</label>
+                    <!-- Files List -->
+                    <div id="combineFilesList" class="files-list"></div>
+
+                    <!-- Workspaces Grid -->
+                    <div id="workspacesGrid" class="workspaces-grid" style="display: none;">
+                        <h3>Workspaces to Combine</h3>
+                        <div class="mdl-grid grid-header">
+                            <div class="mdl-cell mdl-cell--5-col">Workspace Name</div>
+                            <div class="mdl-cell mdl-cell--5-col">Uploader Name</div>
+                            <div class="mdl-cell mdl-cell--2-col">Actions</div>
+                        </div>
+                        <div id="workspacesList"></div>
                     </div>
 
-                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label full-width">
-                        <input class="mdl-textfield__input" type="password" id="outputPin" 
-                               pattern=".{6,}" required>
-                        <label class="mdl-textfield__label" for="outputPin">PIN for combined config (minimum 6 characters)</label>
-                        <span class="mdl-textfield__error">PIN must be at least 6 characters long</span>
-                    </div>
+                    <!-- Add this after the workspaces grid -->
+                    <div id="combineForm" class="combine-form" style="display: none;">
+                        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                            <input class="mdl-textfield__input" type="password" id="combinePin" pattern=".{6,}">
+                            <label class="mdl-textfield__label" for="combinePin">Enter PIN (min. 6 characters)</label>
+                            <span class="mdl-textfield__error">PIN must be at least 6 characters long</span>
+                        </div>
+                        
+                        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                            <input class="mdl-textfield__input" type="text" id="combineFileName" value="combined_keys.mydre">
+                            <label class="mdl-textfield__label" for="combineFileName">File Name</label>
+                        </div>
 
-                    <div class="mdl-card__actions">
-                        <button id="combineButton" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" disabled>
+                        <button id="combineButton" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
                             Combine and Download
                         </button>
                     </div>
@@ -63,7 +53,7 @@
     </div>
 </div>
 
-<!-- PIN Dialog Template -->
+<!-- PIN Dialog -->
 <dialog class="mdl-dialog" id="pinDialog">
     <h4 class="mdl-dialog__title">Enter PIN</h4>
     <div class="mdl-dialog__content">

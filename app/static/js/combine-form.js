@@ -1,332 +1,475 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const filesList = document.getElementById('filesList');
-    const workspacesGrid = document.getElementById('workspacesGrid');
-    const workspacesList = document.getElementById('workspacesList');
-    const outputConfig = document.getElementById('outputConfig');
-    const combineButton = document.getElementById('combineButton');
-    const pinDialog = document.getElementById('pinDialog');
-    
-    if (!dropZone) return; // Only run on combine page
+// Namespace for combine configurations
+const CombineConfig = {
+    dropZone: null,
+    fileInput: null,
+    filesList: null,
+    pinDialog: null,
+    uploadedFiles: new Map(),
 
-    const uploadedFiles = new Map(); // Store uploaded files
-    const decryptedWorkspaces = new Map(); // Store decrypted workspaces
-    let currentFile = null;
+    init() {
+        console.log('Checking for combine-config page');
+        const combineConfigPage = document.querySelector('.combine-config');
+        
+        if (!combineConfigPage) {
+            console.log('Not on combine-config page');
+            return;
+        }
 
-    // Register dialog polyfill if needed
-    if (!pinDialog.showModal) {
-        dialogPolyfill.registerDialog(pinDialog);
-    }
+        console.log('Found combine-config page, initializing elements');
+        this.dropZone = document.getElementById('combineDropZone');
+        this.fileInput = document.getElementById('combineFileInput');
+        this.filesList = document.getElementById('combineFilesList');
+        this.pinDialog = document.getElementById('pinDialog');
 
-    // Drag and drop handlers
-    dropZone.addEventListener('dragover', (e) => {
+        if (!this.dropZone || !this.fileInput || !this.filesList || !this.pinDialog) {
+            console.error('Required combine config elements not found');
+            return;
+        }
+
+        this.setupDragAndDrop();
+        this.setupFileInput();
+        this.setupPinDialog();
+        this.setupCombineForm();
+        
+        // Initialize MDL components
+        componentHandler.upgradeDom();
+    },
+
+    setupDragAndDrop() {
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            this.dropZone.addEventListener(eventName, this.preventDefaults, false);
+        });
+
+        // Handle drag states
+        this.dropZone.addEventListener('dragenter', this.handleDragEnter.bind(this), false);
+        this.dropZone.addEventListener('dragover', this.handleDragOver.bind(this), false);
+        this.dropZone.addEventListener('dragleave', this.handleDragLeave.bind(this), false);
+        this.dropZone.addEventListener('drop', this.handleDrop.bind(this), false);
+
+        // Handle click to select files - removed preventDefault
+        this.dropZone.addEventListener('click', () => {
+            console.log('Drop zone clicked');
+            this.fileInput.click();
+        });
+    },
+
+    setupFileInput() {
+        this.fileInput.addEventListener('change', (e) => {
+            console.log('File input change event');
+            const files = Array.from(e.target.files);
+            this.handleFiles(files);
+            this.fileInput.value = ''; // Reset input
+        });
+    },
+
+    preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropZone.classList.add('drag-over');
-    });
+    },
 
-    dropZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('drag-over');
-    });
+    handleDragEnter(e) {
+        this.preventDefaults(e);
+        this.dropZone.classList.add('drag-over');
+    },
 
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('drag-over');
-        handleFiles(Array.from(e.dataTransfer.files));
-    });
+    handleDragOver(e) {
+        this.preventDefaults(e);
+        this.dropZone.classList.add('drag-over');
+    },
 
-    // Click to upload
-    dropZone.addEventListener('click', () => {
-        fileInput.click();
-    });
+    handleDragLeave(e) {
+        this.preventDefaults(e);
+        this.dropZone.classList.remove('drag-over');
+    },
 
-    fileInput.addEventListener('change', (e) => {
-        handleFiles(Array.from(e.target.files));
-        fileInput.value = ''; // Reset input to allow selecting the same file again
-    });
+    handleDrop(e) {
+        this.preventDefaults(e);
+        this.dropZone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files);
+        this.handleFiles(files);
+    },
 
-    function handleFiles(files) {
+    handleFiles(files) {
+        console.log('Processing files:', files.length);
         files.forEach(file => {
             if (file.name.endsWith('.mydre')) {
-                if (!uploadedFiles.has(file.name)) {
-                    uploadedFiles.set(file.name, file);
-                    addFileToList(file);
-                }
+                this.addFileToList(file);
             } else {
-                alert('Please upload only .mydre files');
+                console.warn(`Skipping file ${file.name}: not a .mydre file`);
             }
         });
-    }
+    },
 
-    function addFileToList(file) {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        fileItem.innerHTML = `
-            <i class="material-icons">description</i>
-            <span class="file-name">${file.name}</span>
-            <i class="material-icons status-icon decrypt-trigger" title="Click to decrypt">hourglass_empty</i>
-            <i class="material-icons remove-file">close</i>
-        `;
-
-        // Add click handler for decryption
-        fileItem.querySelector('.decrypt-trigger').addEventListener('click', () => {
-            if (!decryptedWorkspaces.has(file.name)) {
-                promptForPin(file);
-            }
-        });
-
-        fileItem.querySelector('.remove-file').addEventListener('click', () => {
-            uploadedFiles.delete(file.name);
-            // Remove associated workspaces
-            const workspaces = decryptedWorkspaces.get(file.name);
-            if (workspaces) {
-                decryptedWorkspaces.delete(file.name);
-                updateWorkspacesGrid();
-            }
-            fileItem.remove();
-            validateForm();
-        });
-
-        filesList.appendChild(fileItem);
-    }
-
-    function promptForPin(file) {
-        currentFile = file;
-        document.getElementById('currentFileName').textContent = file.name;
-        document.getElementById('filePin').value = '';
-        pinDialog.showModal();
-    }
-
-    // Dialog handlers
-    document.getElementById('decryptButton').addEventListener('click', async () => {
-        const pin = document.getElementById('filePin').value;
-        if (pin.length < 6) {
-            alert('PIN must be at least 6 characters');
+    addFileToList(file) {
+        if (this.uploadedFiles.has(file.name)) {
+            console.warn(`File ${file.name} already added`);
             return;
         }
 
-        try {
-            const fileData = await readFileAsBase64(currentFile);
-            const response = await fetch('/api/v1/config/decrypt', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    encrypted_data: fileData,
-                    pin: pin
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to decrypt file');
-            }
-
-            const data = await response.json();
-            if (data.workspaces) {
-                decryptedWorkspaces.set(currentFile.name, data.workspaces);
-                updateFileStatus(currentFile.name, true);
-                updateWorkspacesGrid();
-                pinDialog.close();
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            updateFileStatus(currentFile.name, false);
-            alert('Failed to decrypt file. Please check your PIN and try again.');
-        }
-    });
-
-    document.getElementById('cancelButton').addEventListener('click', () => {
-        pinDialog.close();
-    });
-
-    function updateFileStatus(fileName, status) {
-        const fileItem = Array.from(filesList.children)
-            .find(item => item.querySelector('.file-name').textContent === fileName);
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'file-item mdl-shadow--2dp';
         
-        if (fileItem) {
-            const statusIcon = fileItem.querySelector('.status-icon');
-            switch(status) {
-                case true:
-                    statusIcon.textContent = 'check_circle';
-                    statusIcon.className = 'material-icons status-icon success';
-                    break;
-                case false:
-                    statusIcon.textContent = 'error';
-                    statusIcon.className = 'material-icons status-icon error';
-                    break;
-                case 'removed':
-                    statusIcon.textContent = 'hourglass_empty';
-                    statusIcon.className = 'material-icons status-icon decrypt-trigger';
-                    statusIcon.title = 'Click to decrypt';
-                    break;
+        const fileIcon = document.createElement('i');
+        fileIcon.className = 'material-icons file-icon';
+        fileIcon.textContent = 'description';
+        
+        const fileName = document.createElement('span');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name;
+        
+        const statusIcon = document.createElement('i');
+        statusIcon.className = 'material-icons status-icon pending';
+        statusIcon.textContent = 'hourglass_empty';
+        statusIcon.title = 'Click to decrypt file';
+        statusIcon.addEventListener('click', () => this.handleStatusClick(file.name));
+        
+        const removeButton = document.createElement('button');
+        removeButton.className = 'mdl-button mdl-js-button mdl-button--icon remove-button';
+        removeButton.innerHTML = '<i class="material-icons">close</i>';
+        removeButton.addEventListener('click', () => this.removeFile(file.name));
+        
+        fileDiv.appendChild(fileIcon);
+        fileDiv.appendChild(fileName);
+        fileDiv.appendChild(statusIcon);
+        fileDiv.appendChild(removeButton);
+        
+        this.filesList.appendChild(fileDiv);
+        this.uploadedFiles.set(file.name, { 
+            file, 
+            element: fileDiv,
+            status: 'pending'
+        });
+    },
+
+    handleStatusClick(fileName) {
+        const fileData = this.uploadedFiles.get(fileName);
+        if (fileData && (fileData.status === 'pending' || fileData.status === 'error')) {
+            this.showPinDialog(fileName);
+        }
+    },
+
+    removeFile(fileName) {
+        const fileData = this.uploadedFiles.get(fileName);
+        if (fileData) {
+            fileData.element.remove();
+            this.uploadedFiles.delete(fileName);
+        }
+    },
+
+    showPinDialog(fileName) {
+        document.getElementById('currentFileName').textContent = fileName;
+        document.getElementById('filePin').value = '';
+        this.pinDialog.showModal();
+    },
+
+    setupPinDialog() {
+        const decryptButton = document.getElementById('decryptButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const pinInput = document.getElementById('filePin');
+
+        decryptButton.addEventListener('click', async () => {
+            const fileName = document.getElementById('currentFileName').textContent;
+            const pin = pinInput.value;
+            
+            if (!pin) {
+                console.error('PIN is required');
+                return;
+            }
+
+            const fileData = this.uploadedFiles.get(fileName);
+            if (!fileData) {
+                console.error('File not found:', fileName);
+                return;
+            }
+
+            try {
+                console.log('Preparing decrypt request...'); // Debug log
+                const formData = new FormData();
+                formData.append('file', fileData.file);
+                formData.append('pin', pin);
+
+                console.log('Sending decrypt request...'); // Debug log
+                const response = await fetch('/api/v1/config/decrypt', {  // Changed to /config/decrypt to match existing endpoint
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('Response status:', response.status); // Debug log
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Decryption failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Decrypt result:', result); // Debug log
+
+                // Check if we got workspace data back (successful decryption)
+                if (result.workspace_name) {
+                    this.updateFileStatus(fileName, true);
+                    console.log('File decrypted successfully:', fileName);
+                    // Store the decrypted data and update grid
+                    fileData.decryptedData = result;
+                    this.updateWorkspacesGrid();
+                } else {
+                    throw new Error('Invalid decryption response');
+                }
+            } catch (error) {
+                console.error('Decryption error:', error);
+                this.updateFileStatus(fileName, false);
+            } finally {
+                this.pinDialog.close();
+                pinInput.value = '';
+            }
+        });
+
+        cancelButton.addEventListener('click', () => {
+            this.pinDialog.close();
+            pinInput.value = '';
+        });
+    },
+
+    updateFileStatus(fileName, success) {
+        const fileData = this.uploadedFiles.get(fileName);
+        if (fileData) {
+            const statusIcon = fileData.element.querySelector('.status-icon');
+            if (success) {
+                statusIcon.textContent = 'check_circle';
+                statusIcon.className = 'material-icons status-icon success';
+                fileData.status = 'success';
+            } else {
+                statusIcon.textContent = 'error';
+                statusIcon.className = 'material-icons status-icon error';
+                fileData.status = 'error';
             }
         }
-    }
+    },
 
-    function updateWorkspacesGrid() {
-        const allWorkspaces = new Map();
+    updateWorkspacesGrid() {
+        const workspacesGrid = document.getElementById('workspacesGrid');
+        const workspacesList = document.getElementById('workspacesList');
+        
+        // Show the grid if it was hidden
+        workspacesGrid.style.display = 'block';
+        
+        // Create a new workspace row
+        const row = document.createElement('div');
+        row.className = 'mdl-grid workspace-row';
+        
+        // Add workspace data to the row
+        const workspace = this.uploadedFiles.get(document.getElementById('currentFileName').textContent).decryptedData;
+        
+        // Create cells for workspace name and uploader name only
+        const nameCell = document.createElement('div');
+        nameCell.className = 'mdl-cell mdl-cell--5-col';
+        nameCell.textContent = workspace.workspace_name;
+        
+        // Check for duplicate workspace names
+        const existingWorkspaceNames = Array.from(workspacesList.children).map(
+            row => row.querySelector('.mdl-cell').textContent
+        );
+        
+        if (existingWorkspaceNames.includes(workspace.workspace_name)) {
+            // Add red color to both the existing and new workspace names
+            nameCell.style.color = '#F44336';  // Material Design red
+            // Find and color the existing duplicate
+            workspacesList.querySelectorAll('.mdl-cell').forEach(cell => {
+                if (cell.textContent === workspace.workspace_name) {
+                    cell.style.color = '#F44336';
+                }
+            });
+        }
+        
+        const uploaderCell = document.createElement('div');
+        uploaderCell.className = 'mdl-cell mdl-cell--5-col';
+        uploaderCell.textContent = workspace.uploader_name;
+        
+        // Add remove button
+        const actionCell = document.createElement('div');
+        actionCell.className = 'mdl-cell mdl-cell--2-col';
+        const removeButton = document.createElement('button');
+        removeButton.className = 'mdl-button mdl-js-button mdl-button--icon';
+        removeButton.innerHTML = '<i class="material-icons">delete</i>';
+        removeButton.onclick = () => {
+            row.remove();
+            // Recheck for duplicates after removal
+            this.recheckDuplicates();
+        };
+        actionCell.appendChild(removeButton);
+        
+        // Add cells to the row
+        row.appendChild(nameCell);
+        row.appendChild(uploaderCell);
+        row.appendChild(actionCell);
+        
+        // Add the row to the grid
+        workspacesList.appendChild(row);
+        
+        // Update combine form visibility
+        this.updateCombineFormVisibility();
+    },
+
+    recheckDuplicates() {
+        const workspacesList = document.getElementById('workspacesList');
+        const rows = Array.from(workspacesList.children);
+        const nameMap = new Map();
+
+        // Reset all colors first
+        rows.forEach(row => {
+            const nameCell = row.querySelector('.mdl-cell');
+            nameCell.style.color = '';
+        });
+
+        // Check for duplicates and color them
+        rows.forEach(row => {
+            const nameCell = row.querySelector('.mdl-cell');
+            const name = nameCell.textContent;
+            
+            if (nameMap.has(name)) {
+                // Color both this one and the previous one
+                nameCell.style.color = '#F44336';
+                nameMap.get(name).style.color = '#F44336';
+            } else {
+                nameMap.set(name, nameCell);
+            }
+        });
+    },
+
+    setupCombineForm() {
+        console.log('Setting up combine form');
+        const combineForm = document.getElementById('combineForm');
+        const combineButton = document.getElementById('combineButton');
+        const pinInput = document.getElementById('combinePin');
+        const fileNameInput = document.getElementById('combineFileName');
+
+        if (!combineButton || !pinInput || !fileNameInput) {
+            console.error('Combine form elements not found');
+            return;
+        }
+
+        this.updateCombineFormVisibility();
+
+        combineButton.addEventListener('click', async () => {
+            console.log('Combine button clicked');
+            const pin = pinInput.value;
+            let fileName = fileNameInput.value;
+
+            if (pin.length < 6) {
+                alert('PIN must be at least 6 characters long');
+                return;
+            }
+
+            if (!fileName.endsWith('.mydre')) {
+                fileName += '.mydre';
+                fileNameInput.value = fileName;
+            }
+
+            if (this.hasDuplicateWorkspaces()) {
+                alert('Cannot combine while duplicate workspace names exist');
+                return;
+            }
+
+            try {
+                console.log('Creating combined workspace data');
+                const workspaces = {};
+                const workspacesList = document.getElementById('workspacesList');
+                
+                Array.from(workspacesList.children).forEach(row => {
+                    const cells = row.querySelectorAll('.mdl-cell');
+                    const workspaceName = cells[0].textContent;
+                    const originalData = this.findWorkspaceData(workspaceName);
+                    
+                    if (originalData) {
+                        workspaces[workspaceName] = {
+                            workspace_key: originalData.workspace_key,
+                            subscription_key: originalData.subscription_key,
+                            uploader_name: originalData.uploader_name
+                        };
+                    }
+                });
+
+                const combinedData = {
+                    workspaces: workspaces
+                };
+
+                // Create a Blob from the JSON data
+                const jsonBlob = new Blob([JSON.stringify(combinedData)], { type: 'application/json' });
+                
+                // Create FormData and append the file and pin
+                const formData = new FormData();
+                formData.append('file', jsonBlob, fileName);
+                formData.append('pin', pin);
+
+                console.log('Sending data for encryption');
+                // Use the same endpoint as config-form.js
+                const response = await fetch('/encrypt', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to encrypt combined file');
+                }
+
+                // Handle the encrypted file download
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.download = fileName;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                window.URL.revokeObjectURL(downloadUrl);
+
+            } catch (error) {
+                console.error('Error combining workspaces:', error);
+                alert('Failed to create combined file');
+            }
+        });
+    },
+
+    hasDuplicateWorkspaces() {
+        const workspacesList = document.getElementById('workspacesList');
+        const names = new Set();
         let hasDuplicates = false;
 
-        // Collect all workspaces
-        for (const [fileName, workspaces] of decryptedWorkspaces) {
-            const workspacesData = workspaces.workspaces || workspaces;
-            
-            for (const [name, config] of Object.entries(workspacesData)) {
-                if (allWorkspaces.has(name)) {
-                    hasDuplicates = true;
-                    alert(`Duplicate workspace name found: ${name}`);
-                } else {
-                    allWorkspaces.set(name, { ...config, sourceFile: fileName });
-                }
+        Array.from(workspacesList.children).forEach(row => {
+            const name = row.querySelector('.mdl-cell').textContent;
+            if (names.has(name)) {
+                hasDuplicates = true;
             }
-        }
-
-        // Update grid
-        workspacesList.innerHTML = '';
-        allWorkspaces.forEach((config, name) => {
-            const row = document.createElement('div');
-            row.className = 'mdl-grid workspace-row';
-            row.innerHTML = `
-                <div class="mdl-cell mdl-cell--3-col">${name}</div>
-                <div class="mdl-cell mdl-cell--3-col">${config.workspace_key}</div>
-                <div class="mdl-cell mdl-cell--2-col">${config.subscription_key}</div>
-                <div class="mdl-cell mdl-cell--3-col">${config.uploader_name}</div>
-                <div class="mdl-cell mdl-cell--1-col">
-                    <i class="material-icons remove-workspace" 
-                       title="Remove workspace" 
-                       data-workspace="${name}" 
-                       data-source="${config.sourceFile}">
-                        delete
-                    </i>
-                </div>
-            `;
-
-            // Add click handler for remove button
-            const removeButton = row.querySelector('.remove-workspace');
-            removeButton.addEventListener('click', () => {
-                const workspaceName = removeButton.dataset.workspace;
-                const sourceFile = removeButton.dataset.source;
-                removeWorkspace(workspaceName, sourceFile);
-            });
-
-            workspacesList.appendChild(row);
+            names.add(name);
         });
 
-        // Show/hide sections
-        workspacesGrid.style.display = allWorkspaces.size > 0 ? 'block' : 'none';
-        outputConfig.style.display = allWorkspaces.size > 0 && !hasDuplicates ? 'block' : 'none';
-        validateForm();
-    }
+        return hasDuplicates;
+    },
 
-    function removeWorkspace(workspaceName, sourceFile) {
-        const fileWorkspaces = decryptedWorkspaces.get(sourceFile);
-        if (fileWorkspaces) {
-            const workspacesData = fileWorkspaces.workspaces || fileWorkspaces;
-            delete workspacesData[workspaceName];
-            
-            // If this was the last workspace in the file, update the file status
-            if (Object.keys(workspacesData).length === 0) {
-                decryptedWorkspaces.delete(sourceFile);
-                updateFileStatus(sourceFile, 'removed');
+    findWorkspaceData(workspaceName) {
+        // Search through all uploaded files for matching workspace data
+        for (const fileData of this.uploadedFiles.values()) {
+            if (fileData.decryptedData && fileData.decryptedData.workspace_name === workspaceName) {
+                return fileData.decryptedData;
             }
-            
-            updateWorkspacesGrid();
+        }
+        return null;
+    },
+
+    updateCombineFormVisibility() {
+        const combineForm = document.getElementById('combineForm');
+        const workspacesList = document.getElementById('workspacesList');
+        
+        if (workspacesList.children.length > 0) {
+            combineForm.style.display = 'block';
+        } else {
+            combineForm.style.display = 'none';
         }
     }
+};
 
-    function validateForm() {
-        const outputPin = document.getElementById('outputPin');
-        const hasWorkspaces = decryptedWorkspaces.size > 0;
-        const isValid = hasWorkspaces && outputPin.value.length >= 6;
-        combineButton.disabled = !isValid;
-    }
-
-    // Handle output PIN changes
-    document.getElementById('outputPin').addEventListener('input', validateForm);
-
-    // Handle form submission
-    combineButton.addEventListener('click', async () => {
-        const outputFilename = document.getElementById('outputFilename').value.trim();
-        const outputPin = document.getElementById('outputPin').value;
-
-        if (!outputFilename || outputPin.length < 6) {
-            alert('Please provide a valid filename and PIN');
-            return;
-        }
-
-        try {
-            combineButton.disabled = true;
-            combineButton.textContent = 'Combining...';
-
-            // Collect all workspaces
-            const allWorkspaces = {};
-            decryptedWorkspaces.forEach(workspaces => {
-                Object.assign(allWorkspaces, workspaces);
-            });
-
-            const response = await fetch('/api/v1/combine', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    pin: outputPin,
-                    filename: outputFilename,
-                    workspaces: allWorkspaces
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to combine configs');
-            }
-
-            const blob = await response.blob();
-            const fileName = `${outputFilename}.mydre`;
-            
-            // Download combined file
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            // Reset form
-            uploadedFiles.clear();
-            decryptedWorkspaces.clear();
-            filesList.innerHTML = '';
-            workspacesList.innerHTML = '';
-            workspacesGrid.style.display = 'none';
-            outputConfig.style.display = 'none';
-            document.getElementById('outputPin').value = '';
-            document.getElementById('outputFilename').value = 'combined_configs';
-
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'Failed to combine configurations. Please try again.');
-        } finally {
-            combineButton.disabled = false;
-            combineButton.textContent = 'Combine and Download';
-        }
-    });
-
-    function readFileAsBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const base64Data = reader.result.split(',')[1];
-                resolve(base64Data);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing CombineConfig');
+    CombineConfig.init();
 }); 

@@ -1,7 +1,23 @@
-// Main JavaScript file
-document.addEventListener("DOMContentLoaded", function() {
-    // Auto-register all MDL components
-    componentHandler.upgradeDom();
+// Main JavaScript initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize MDL components
+    if (typeof componentHandler !== 'undefined') {
+        componentHandler.upgradeDom();
+    }
+
+    // Global error handler
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
+        return false;
+    };
+
+    // Prevent external scripts from interfering with our app
+    window.addEventListener('error', function(e) {
+        if (e.filename && !e.filename.includes(window.location.origin)) {
+            e.stopPropagation();
+            return false;
+        }
+    }, true);
 
     // Handle file input display
     const fileInput = document.querySelector(".mdl-button--file input[type=file]");
