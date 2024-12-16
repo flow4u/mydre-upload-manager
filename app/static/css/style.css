@@ -56,20 +56,14 @@
 .file-upload-area {
     border: 2px dashed #ccc;
     border-radius: 4px;
-    padding: 12px;
+    padding: 40px 20px;
     text-align: center;
     cursor: pointer;
-    margin-bottom: 16px;
-    transition: all 0.3s ease;
     background-color: #fafafa;
-    min-height: 60px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 60%;
-    margin-left: auto;
-    margin-right: auto;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
 }
 
 .file-upload-area:hover,
@@ -396,4 +390,114 @@ input[type="file"] {
 /* Reduce height of drag and drop areas in upload page */
 #dropZone {
     min-height: 60px;  /* Reduced from default 100px */
+}
+
+.upload-button-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#uploadFilesButton {
+    margin: 20px auto;
+    background-color: rgb(63, 81, 181);
+    color: white;
+}
+
+.status-icon {
+    margin-left: 10px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.file-upload-section {
+    margin-bottom: 30px;
+}
+
+.file-upload-area {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.file-upload-area:hover {
+    border-color: #666;
+}
+
+.file-upload-area.dragover {
+    border-color: #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.upload-container {
+    padding: 20px;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.upload-section {
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 1500px;
+}
+
+/* Adjust grid layout */
+.mdl-grid {
+    width: 100%;
+    margin: 0;
+    padding: 8px;
+}
+
+/* Adjust column widths to fit in one row */
+.mdl-cell--3-col {
+    width: calc(25% - 16px);  /* Adjust for padding */
+}
+
+/* Grid layout adjustments */
+.mdl-grid {
+    display: flex;
+    flex-wrap: nowrap;  /* Prevent wrapping */
+    width: 100%;
+    margin: 0;
+    padding: 8px;
+    align-items: center;
+}
+
+/* Column width adjustments */
+.workspace-name-col {
+    width: 200px;      /* Fixed width for workspace name */
+    min-width: 200px;  /* Ensure minimum width */
+    flex-shrink: 0;    /* Prevent shrinking */
+}
+
+.key-col {
+    width: 2px;        /* Minimal width for keys */
+    min-width: 2px;
+    overflow: hidden;  /* Hide overflow */
+    opacity: 0.1;      /* Nearly invisible */
+}
+
+.uploader-name-col {
+    width: 250px;      /* Fixed width for uploader name */
+    min-width: 250px;
+    flex-shrink: 0;
+}
+
+.actions-col {
+    width: 100px;      /* Fixed width for actions */
+    min-width: 100px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+/* Text truncation */
+.workspace-name, .uploader-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
