@@ -30,7 +30,7 @@
                         <div id="workspacesList"></div>
                     </div>
 
-                    <!-- Add this after the workspaces grid -->
+                    <!-- Combine Form -->
                     <div id="combineForm" class="combine-form" style="display: none;">
                         <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                             <input class="mdl-textfield__input" type="password" id="combinePin" pattern=".{6,}">
@@ -68,4 +68,8 @@
         <button type="button" class="mdl-button close" id="cancelButton">Cancel</button>
     </div>
 </dialog>
+{% endblock %} 
+
+{% block page_scripts %}
+    <script src="{{ url_for('static', path='/js/combine-form.js') }}"></script>
 {% endblock %} 

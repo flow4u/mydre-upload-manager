@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileName = `${formData.workspace_name}-${sanitized_name}.mydre`;
 
         try {
-            const response = await fetch('/api/v1/config/combine', {
+            const response = await fetch('/api/v1/config/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

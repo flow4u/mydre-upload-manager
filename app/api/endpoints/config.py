@@ -124,30 +124,23 @@ async def decrypt_config(
                 detail="Invalid JSON format in decrypted data"
             )
         
-        # Extract workspace data
+        # Return the entire config structure
         if 'workspaces' in config:
-            try:
-                workspace_data = next(iter(config['workspaces'].values()))
-                response_data = {
-                    'workspace_name': next(iter(config['workspaces'].keys())),
-                    'workspace_key': workspace_data['workspace_key'],
-                    'subscription_key': workspace_data['subscription_key'],
-                    'uploader_name': workspace_data['uploader_name']
-                }
-                logger.debug(f"Response data: {json.dumps(response_data, indent=2)}")
-                return response_data
-            except Exception as extract_error:
-                logger.error(f"Data extraction failed: {str(extract_error)}")
-                raise HTTPException(
-                    status_code=400,
-                    detail="Failed to extract configuration data"
-                )
+            logger.debug(f"Returning full workspaces structure with {len(config['workspaces'])} workspaces")
+            return config
         else:
-            logger.error("No workspaces found in config")
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid configuration format: no workspaces found"
-            )
+            # Handle single workspace format by wrapping it in workspaces structure
+            logger.debug("Converting single workspace to workspaces structure")
+            workspace_name = config.get('workspace_name', 'Workspace')
+            return {
+                "workspaces": {
+                    workspace_name: {
+                        "workspace_key": config['workspace_key'],
+                        "subscription_key": config['subscription_key'],
+                        "uploader_name": config['uploader_name']
+                    }
+                }
+            }
 
     except HTTPException:
         raise

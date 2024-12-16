@@ -36,18 +36,36 @@ const CombineConfig = {
     },
 
     setupDragAndDrop() {
-        // Prevent default drag behaviors
+        // Prevent default drag behaviors on document level
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.addEventListener(eventName, this.preventDefaults, false);
             this.dropZone.addEventListener(eventName, this.preventDefaults, false);
         });
 
-        // Handle drag states
-        this.dropZone.addEventListener('dragenter', this.handleDragEnter.bind(this), false);
-        this.dropZone.addEventListener('dragover', this.handleDragOver.bind(this), false);
-        this.dropZone.addEventListener('dragleave', this.handleDragLeave.bind(this), false);
-        this.dropZone.addEventListener('drop', this.handleDrop.bind(this), false);
+        // Add drag-over class for visual feedback
+        this.dropZone.addEventListener('dragenter', (e) => {
+            this.preventDefaults(e);
+            this.dropZone.classList.add('file-upload-area--active');
+        });
 
-        // Handle click to select files - removed preventDefault
+        this.dropZone.addEventListener('dragover', (e) => {
+            this.preventDefaults(e);
+            this.dropZone.classList.add('file-upload-area--active');
+        });
+
+        this.dropZone.addEventListener('dragleave', (e) => {
+            this.preventDefaults(e);
+            this.dropZone.classList.remove('file-upload-area--active');
+        });
+
+        this.dropZone.addEventListener('drop', (e) => {
+            this.preventDefaults(e);
+            this.dropZone.classList.remove('file-upload-area--active');
+            const files = Array.from(e.dataTransfer.files);
+            this.handleFiles(files);
+        });
+
+        // Handle click to select files
         this.dropZone.addEventListener('click', () => {
             console.log('Drop zone clicked');
             this.fileInput.click();
@@ -184,40 +202,82 @@ const CombineConfig = {
             }
 
             try {
-                console.log('Preparing decrypt request...'); // Debug log
+                // If PIN is 000000, read file directly without decryption
+                if (pin === '000000') {
+                    console.log('Test PIN detected, reading file without decryption');
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            console.log('Raw file content:', content);
+                            
+                            const jsonData = JSON.parse(content);
+                            console.log('Parsed JSON data:', jsonData);
+                            
+                            if (!this.validateDecryptedStructure(jsonData)) {
+                                throw new Error('Invalid workspace structure');
+                            }
+                            
+                            this.processDecryptedData(fileName, fileData, jsonData);
+                        } catch (error) {
+                            console.error('Error processing file:', error);
+                            this.updateFileStatus(fileName, false);
+                        }
+                    };
+                    
+                    reader.readAsText(fileData.file);
+                    this.pinDialog.close();
+                    pinInput.value = '';
+                    return;
+                }
+
+                // Normal decryption process
+                console.log('=== Starting Decryption Process ===');
                 const formData = new FormData();
                 formData.append('file', fileData.file);
                 formData.append('pin', pin);
 
-                console.log('Sending decrypt request...'); // Debug log
-                const response = await fetch('/api/v1/config/decrypt', {  // Changed to /config/decrypt to match existing endpoint
+                console.log('Sending decrypt request...');
+                const response = await fetch('/api/v1/config/decrypt', {
                     method: 'POST',
                     body: formData
                 });
-
-                console.log('Response status:', response.status); // Debug log
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error || `Decryption failed: ${response.statusText}`);
                 }
 
-                const result = await response.json();
-                console.log('Decrypt result:', result); // Debug log
+                let result = await response.json();
+                console.log('Raw decrypt result:', result);
 
-                // Check if we got workspace data back (successful decryption)
-                if (result.workspace_name) {
-                    this.updateFileStatus(fileName, true);
-                    console.log('File decrypted successfully:', fileName);
-                    // Store the decrypted data and update grid
-                    fileData.decryptedData = result;
-                    this.updateWorkspacesGrid();
-                } else {
-                    throw new Error('Invalid decryption response');
+                // Convert single workspace format to workspaces format if needed
+                if (!result.workspaces && result.workspace_key) {
+                    console.log('Converting single workspace format to workspaces format');
+                    result = {
+                        workspaces: {
+                            [result.workspace_name || 'Workspace']: {
+                                workspace_key: result.workspace_key,
+                                subscription_key: result.subscription_key,
+                                uploader_name: result.uploader_name
+                            }
+                        }
+                    };
                 }
+
+                console.log('Processed decrypt result:', result);
+
+                if (!this.validateDecryptedStructure(result)) {
+                    throw new Error('Invalid decrypted data structure');
+                }
+
+                this.processDecryptedData(fileName, fileData, result);
+
             } catch (error) {
                 console.error('Decryption error:', error);
                 this.updateFileStatus(fileName, false);
+                alert(`Decryption failed: ${error.message}`);
             } finally {
                 this.pinDialog.close();
                 pinInput.value = '';
@@ -228,6 +288,77 @@ const CombineConfig = {
             this.pinDialog.close();
             pinInput.value = '';
         });
+    },
+
+    validateDecryptedStructure(data) {
+        console.log('Validating decrypted structure...', data);
+        
+        if (!data || typeof data !== 'object') {
+            console.error('Invalid data type');
+            return false;
+        }
+
+        // Handle both single workspace and multiple workspaces format
+        if (data.workspace_key && data.subscription_key && data.uploader_name) {
+            console.log('Valid single workspace structure found');
+            return true;
+        }
+
+        if (!data.workspaces || typeof data.workspaces !== 'object') {
+            console.error('Missing or invalid workspaces object');
+            return false;
+        }
+
+        const workspaceCount = Object.keys(data.workspaces).length;
+        console.log('Number of workspaces found:', workspaceCount);
+
+        if (workspaceCount === 0) {
+            console.error('No workspaces found in decrypted data');
+            return false;
+        }
+
+        // Validate each workspace
+        for (const [name, workspace] of Object.entries(data.workspaces)) {
+            console.log(`Validating workspace: ${name}`);
+            if (!workspace.workspace_key || 
+                !workspace.subscription_key || 
+                !workspace.uploader_name) {
+                console.error(`Invalid workspace data for ${name}:`, workspace);
+                return false;
+            }
+        }
+
+        console.log('Decrypted structure validation passed');
+        return true;
+    },
+
+    processDecryptedData(fileName, fileData, decryptedData) {
+        console.log('=== Processing Decrypted Data ===');
+        console.log('File:', fileName);
+        console.log('Number of workspaces:', Object.keys(decryptedData.workspaces).length);
+        
+        // Store the decrypted data
+        fileData.decryptedData = decryptedData;
+        this.updateFileStatus(fileName, true);
+        
+        // Show the workspaces grid
+        const workspacesGrid = document.getElementById('workspacesGrid');
+        workspacesGrid.style.display = 'block';
+        
+        // Add each workspace to grid
+        Object.entries(decryptedData.workspaces).forEach(([workspaceName, workspaceData]) => {
+            console.log(`Adding workspace to grid: ${workspaceName}`);
+            console.log('Workspace data:', workspaceData);
+            
+            this.addWorkspaceToGrid(workspaceName, {
+                workspace_key: workspaceData.workspace_key,
+                subscription_key: workspaceData.subscription_key,
+                uploader_name: workspaceData.uploader_name
+            });
+        });
+        
+        console.log('All workspaces added to grid');
+        this.updateCombineFormVisibility();
     },
 
     updateFileStatus(fileName, success) {
@@ -246,46 +377,26 @@ const CombineConfig = {
         }
     },
 
-    updateWorkspacesGrid() {
-        const workspacesGrid = document.getElementById('workspacesGrid');
+    addWorkspaceToGrid(workspaceName, workspaceData) {
+        console.log(`Creating grid row for workspace: ${workspaceName}`, workspaceData);
+        
         const workspacesList = document.getElementById('workspacesList');
         
-        // Show the grid if it was hidden
-        workspacesGrid.style.display = 'block';
-        
-        // Create a new workspace row
+        // Create row
         const row = document.createElement('div');
         row.className = 'mdl-grid workspace-row';
         
-        // Add workspace data to the row
-        const workspace = this.uploadedFiles.get(document.getElementById('currentFileName').textContent).decryptedData;
-        
-        // Create cells for workspace name and uploader name only
+        // Workspace name cell
         const nameCell = document.createElement('div');
         nameCell.className = 'mdl-cell mdl-cell--5-col';
-        nameCell.textContent = workspace.workspace_name;
+        nameCell.textContent = workspaceName;
         
-        // Check for duplicate workspace names
-        const existingWorkspaceNames = Array.from(workspacesList.children).map(
-            row => row.querySelector('.mdl-cell').textContent
-        );
-        
-        if (existingWorkspaceNames.includes(workspace.workspace_name)) {
-            // Add red color to both the existing and new workspace names
-            nameCell.style.color = '#F44336';  // Material Design red
-            // Find and color the existing duplicate
-            workspacesList.querySelectorAll('.mdl-cell').forEach(cell => {
-                if (cell.textContent === workspace.workspace_name) {
-                    cell.style.color = '#F44336';
-                }
-            });
-        }
-        
+        // Uploader name cell
         const uploaderCell = document.createElement('div');
         uploaderCell.className = 'mdl-cell mdl-cell--5-col';
-        uploaderCell.textContent = workspace.uploader_name;
+        uploaderCell.textContent = workspaceData.uploader_name;
         
-        // Add remove button
+        // Action cell with remove button
         const actionCell = document.createElement('div');
         actionCell.className = 'mdl-cell mdl-cell--2-col';
         const removeButton = document.createElement('button');
@@ -293,21 +404,24 @@ const CombineConfig = {
         removeButton.innerHTML = '<i class="material-icons">delete</i>';
         removeButton.onclick = () => {
             row.remove();
-            // Recheck for duplicates after removal
             this.recheckDuplicates();
+            this.updateCombineFormVisibility();
         };
         actionCell.appendChild(removeButton);
         
-        // Add cells to the row
+        // Add cells to row
         row.appendChild(nameCell);
         row.appendChild(uploaderCell);
         row.appendChild(actionCell);
         
-        // Add the row to the grid
+        // Add row to grid
         workspacesList.appendChild(row);
         
-        // Update combine form visibility
+        // Update visibility and check for duplicates
         this.updateCombineFormVisibility();
+        this.recheckDuplicates();
+        
+        console.log(`Added workspace ${workspaceName} to grid`);
     },
 
     recheckDuplicates() {
@@ -351,7 +465,7 @@ const CombineConfig = {
         this.updateCombineFormVisibility();
 
         combineButton.addEventListener('click', async () => {
-            console.log('Combine button clicked');
+            console.log('=== Starting Combine Process ===');
             const pin = pinInput.value;
             let fileName = fileNameInput.value;
 
@@ -371,45 +485,69 @@ const CombineConfig = {
             }
 
             try {
-                console.log('Creating combined workspace data');
                 const workspaces = {};
                 const workspacesList = document.getElementById('workspacesList');
                 
-                Array.from(workspacesList.children).forEach(row => {
+                console.log('Collecting workspaces from grid...');
+                console.log('Total workspaces found:', workspacesList.children.length);
+                
+                // Collect all workspace data
+                Array.from(workspacesList.children).forEach((row, index) => {
                     const cells = row.querySelectorAll('.mdl-cell');
                     const workspaceName = cells[0].textContent;
-                    const originalData = this.findWorkspaceData(workspaceName);
+                    const workspaceData = this.findWorkspaceData(workspaceName);
                     
-                    if (originalData) {
+                    console.log(`Processing workspace ${index + 1}:`, workspaceName);
+                    
+                    if (workspaceData) {
                         workspaces[workspaceName] = {
-                            workspace_key: originalData.workspace_key,
-                            subscription_key: originalData.subscription_key,
-                            uploader_name: originalData.uploader_name
+                            workspace_key: workspaceData.workspace_key,
+                            subscription_key: workspaceData.subscription_key,
+                            uploader_name: workspaceData.uploader_name
                         };
+                        console.log(`Added workspace to combined data:`, {
+                            name: workspaceName,
+                            data: workspaces[workspaceName]
+                        });
                     }
                 });
 
+                if (Object.keys(workspaces).length === 0) {
+                    throw new Error('No workspaces found to combine');
+                }
+
+                // Create the combined data structure
                 const combinedData = {
                     workspaces: workspaces
                 };
 
-                // Create a Blob from the JSON data
-                const jsonBlob = new Blob([JSON.stringify(combinedData)], { type: 'application/json' });
-                
-                // Create FormData and append the file and pin
-                const formData = new FormData();
-                formData.append('file', jsonBlob, fileName);
-                formData.append('pin', pin);
+                console.log('=== Final Combined Structure ===');
+                console.log('Total workspaces:', Object.keys(workspaces).length);
+                console.log('Workspace names:', Object.keys(workspaces));
+                console.log('Complete structure:', JSON.stringify(combinedData, null, 2));
 
-                console.log('Sending data for encryption');
-                // Use the same endpoint as config-form.js
-                const response = await fetch('/encrypt', {
+                // Verify structure before encryption
+                if (!this.validateCombinedStructure(combinedData)) {
+                    throw new Error('Invalid combined data structure');
+                }
+
+                // Create FormData for encryption
+                const formData = new FormData();
+                formData.append('pin', pin);
+                formData.append('filename', fileName);
+                formData.append('config', JSON.stringify(combinedData));
+
+                console.log('Sending data for encryption...');
+                console.log('Data being encrypted:', JSON.stringify(combinedData, null, 2));
+                
+                const response = await fetch('/api/v1/combine/encrypt', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to encrypt combined file');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`Encryption failed: ${errorData.detail || response.statusText}`);
                 }
 
                 // Handle the encrypted file download
@@ -423,11 +561,45 @@ const CombineConfig = {
                 document.body.removeChild(downloadLink);
                 window.URL.revokeObjectURL(downloadUrl);
 
+                console.log('Successfully encrypted and downloaded combined file');
+                console.log('File contains', Object.keys(workspaces).length, 'workspaces');
+
             } catch (error) {
-                console.error('Error combining workspaces:', error);
-                alert('Failed to create combined file');
+                console.error('Error in combine process:', error);
+                alert(`Failed to create combined file: ${error.message}`);
             }
         });
+    },
+
+    validateCombinedStructure(data) {
+        if (!data || typeof data !== 'object') {
+            console.error('Invalid data type');
+            return false;
+        }
+
+        if (!data.workspaces || typeof data.workspaces !== 'object') {
+            console.error('Missing or invalid workspaces object');
+            return false;
+        }
+
+        const workspaceCount = Object.keys(data.workspaces).length;
+        if (workspaceCount === 0) {
+            console.error('No workspaces found in structure');
+            return false;
+        }
+
+        for (const [name, workspace] of Object.entries(data.workspaces)) {
+            if (!workspace.workspace_key || 
+                !workspace.subscription_key || 
+                !workspace.uploader_name) {
+                console.error(`Invalid workspace data for ${name}:`, workspace);
+                return false;
+            }
+        }
+
+        console.log('Combined structure validation passed');
+        console.log('Total workspaces:', workspaceCount);
+        return true;
     },
 
     hasDuplicateWorkspaces() {
@@ -449,8 +621,18 @@ const CombineConfig = {
     findWorkspaceData(workspaceName) {
         // Search through all uploaded files for matching workspace data
         for (const fileData of this.uploadedFiles.values()) {
-            if (fileData.decryptedData && fileData.decryptedData.workspace_name === workspaceName) {
-                return fileData.decryptedData;
+            if (fileData.decryptedData && fileData.decryptedData.workspaces) {
+                // If the file contains multiple workspaces
+                if (fileData.decryptedData.workspaces[workspaceName]) {
+                    return fileData.decryptedData.workspaces[workspaceName];
+                }
+            } else if (fileData.decryptedData && fileData.decryptedData.workspace_name === workspaceName) {
+                // If it's a single workspace file
+                return {
+                    workspace_key: fileData.decryptedData.workspace_key,
+                    subscription_key: fileData.decryptedData.subscription_key,
+                    uploader_name: fileData.decryptedData.uploader_name
+                };
             }
         }
         return null;
@@ -465,6 +647,96 @@ const CombineConfig = {
         } else {
             combineForm.style.display = 'none';
         }
+    },
+
+    handleFileUpload(file) {
+        console.log('Handling file upload:', file.name);
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                // Try to parse the file content as JSON
+                const content = e.target.result;
+                try {
+                    const jsonData = JSON.parse(content);
+                    console.log('File appears to be unencrypted JSON:', file.name);
+                    
+                    // If it's valid JSON and has the expected structure, add it directly
+                    if (jsonData.workspaces && typeof jsonData.workspaces === 'object') {
+                        console.log('Valid workspaces structure found, adding directly');
+                        this.uploadedFiles.set(file.name, {
+                            file: file,
+                            decryptedData: jsonData
+                        });
+                        this.updateFileStatus(file.name, true);
+                        
+                        // Add workspaces to grid
+                        Object.entries(jsonData.workspaces).forEach(([workspaceName, workspaceData]) => {
+                            this.addWorkspaceToGrid(workspaceName, workspaceData);
+                        });
+                        return;
+                    }
+                } catch (jsonError) {
+                    // Not valid JSON, treat as encrypted
+                    console.log('File appears to be encrypted:', file.name);
+                }
+                
+                // If we get here, treat as encrypted file
+                this.uploadedFiles.set(file.name, {
+                    file: file
+                });
+                this.updateFileList();
+                
+                // Show PIN dialog for encrypted files
+                document.getElementById('currentFileName').textContent = file.name;
+                this.pinDialog.showModal();
+                
+            } catch (error) {
+                console.error('Error processing file:', error);
+                alert('Error processing file');
+            }
+        };
+        
+        reader.readAsText(file);
+    },
+
+    setupDropZone() {
+        const dropZone = document.getElementById('combineDropZone');
+        const fileInput = document.getElementById('combineFileInput');
+        const filesList = document.getElementById('combineFilesList');
+
+        // Handle file input change
+        fileInput.addEventListener('change', (e) => {
+            console.log('File input change event');
+            if (e.target.files.length > 0) {
+                this.handleFiles(Array.from(e.target.files));
+            }
+        });
+
+        // Handle drop zone click
+        dropZone.addEventListener('click', () => {
+            console.log('Drop zone clicked');
+            fileInput.click();
+        });
+
+        // Handle drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                this.handleFiles(Array.from(e.dataTransfer.files));
+            }
+        });
     }
 };
 
