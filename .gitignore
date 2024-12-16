@@ -40,3 +40,7 @@ ENV/
 *.log
 config_files/
 uploads/ 
+
+# Ignore uploaded files but keep the directory
+app/uploads/*
+!app/uploads/.gitkeep

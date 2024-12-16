@@ -53,6 +53,10 @@ async def upload_page(request: Request):
         {"request": request}
     )
 
+@app.get("/upload2")
+async def upload2_page(request: Request):
+    return templates.TemplateResponse("upload2.html", {"request": request})
+
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return HTMLResponse(

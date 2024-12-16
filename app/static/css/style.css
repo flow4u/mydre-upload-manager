@@ -501,3 +501,173 @@ input[type="file"] {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.files-grid {
+    margin-top: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.grid-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.grid-row:last-child {
+    border-bottom: none;
+}
+
+.grid-row.header {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.grid-cell {
+    flex: 1;
+}
+
+.grid-cell:last-child {
+    flex: 0 0 100px;
+    text-align: right;
+}
+
+.upload-row {
+    justify-content: center;
+    padding: 16px;
+    background-color: #f5f5f5;
+}
+
+.upload-row button {
+    width: 200px;
+}
+
+.success-icon {
+    color: #4CAF50;
+    font-size: 20px;
+}
+
+.grid-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.status-icon {
+    cursor: pointer;
+}
+
+.pending-icon {
+    color: #757575;
+}
+
+.success-icon {
+    color: #4CAF50;
+}
+
+.error-icon {
+    color: #F44336;
+}
+
+.mdl-dialog {
+    border: none;
+    box-shadow: 0 9px 46px 8px rgba(0, 0, 0, 0.14), 0 11px 15px -7px rgba(0, 0, 0, 0.12), 0 24px 38px 3px rgba(0, 0, 0, 0.2);
+    width: 320px;
+}
+
+.mdl-dialog__title {
+    padding: 24px 24px 0;
+    margin: 0;
+    font-size: 2rem;
+}
+
+.mdl-dialog__content {
+    padding: 20px 24px 24px 24px;
+    color: rgba(0,0,0,.54);
+}
+
+.mdl-dialog__actions {
+    padding: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mdl-dialog__actions > .mdl-button {
+    margin-left: 8px;
+}
+
+.mdl-textfield {
+    width: 100%;
+}
+
+.pin-input {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.key-file-row {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.key-file-name {
+    flex-grow: 1;
+}
+
+.key-file-status {
+    margin: 0 16px;
+    cursor: pointer;
+}
+
+.key-file-actions {
+    margin-left: 8px;
+}
+
+.checkbox-cell {
+    width: 50px;
+    text-align: center;
+    padding: 0 8px;
+}
+
+.mdl-checkbox {
+    width: auto;
+    margin: 0 auto;
+}
+
+.grid-row {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.workspace-name {
+    flex: 2;
+}
+
+.uploader-name {
+    flex: 1;
+}
+
+.workspace-key,
+.subscription-key {
+    width: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    opacity: 0;
+}
+
+#upload2-workspace-grid .grid-row {
+    margin-bottom: 4px;
+    background-color: #f5f5f5;
+}
+
+#upload2-workspace-grid .header {
+    background-color: #e0e0e0;
+    font-weight: bold;
+}

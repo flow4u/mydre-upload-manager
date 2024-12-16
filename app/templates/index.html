@@ -2,52 +2,67 @@
 
 {% block content %}
 <div class="mdl-grid">
-    <div class="mdl-cell mdl-cell--12-col">
-        <h1 class="mdl-typography--display-2">Welcome to myDRE Upload Manager</h1>
-        <p class="mdl-typography--subhead">Select an action to get started:</p>
-    </div>
-</div>
-
-<div class="grid-container">
-    <div class="mdl-card mdl-shadow--2dp action-card">
-        <div class="mdl-card__title">
-            <h2 class="mdl-card__title-text">Create Config</h2>
-        </div>
-        <div class="mdl-card__supporting-text">
-            Create a new encrypted configuration file with custom settings.
-        </div>
-        <div class="mdl-card__actions mdl-card--border">
-            <a href="/config/create" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                Get Started
-            </a>
+    <div class="mdl-cell mdl-cell--3-col">
+        <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Create Config</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                Create a new configuration file
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="/create">
+                    Create
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="mdl-card mdl-shadow--2dp action-card">
-        <div class="mdl-card__title">
-            <h2 class="mdl-card__title-text">Combine Configs</h2>
-        </div>
-        <div class="mdl-card__supporting-text">
-            Merge multiple configuration files into a single configuration.
-        </div>
-        <div class="mdl-card__actions mdl-card--border">
-            <a href="/config/combine" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                Combine Now
-            </a>
+    <div class="mdl-cell mdl-cell--3-col">
+        <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Combine Configs</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                Combine multiple configuration files
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="/combine">
+                    Combine
+                </a>
+            </div>
         </div>
     </div>
 
-    <div class="mdl-card mdl-shadow--2dp action-card">
-        <div class="mdl-card__title">
-            <h2 class="mdl-card__title-text">Upload Data</h2>
+    <div class="mdl-cell mdl-cell--3-col">
+        <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Upload Data</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                Upload data to workspaces
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="/upload">
+                    Upload
+                </a>
+            </div>
         </div>
-        <div class="mdl-card__supporting-text">
-            Upload and process data files securely.
-        </div>
-        <div class="mdl-card__actions mdl-card--border">
-            <a href="/upload" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                Upload Files
-            </a>
+    </div>
+
+    <div class="mdl-cell mdl-cell--3-col">
+        <div class="mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+                <h2 class="mdl-card__title-text">Upload2</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+                Upload data using the new interface
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="/upload2">
+                    Upload2
+                </a>
+            </div>
         </div>
     </div>
 </div>
