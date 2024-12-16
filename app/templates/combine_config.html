@@ -14,20 +14,24 @@
                         <i class="material-icons">cloud_upload</i>
                         <p>Drag & drop .mydre files here or click to select files</p>
                     </div>
-                    <input type="file" id="combineFileInput" accept=".mydre" multiple>
+                    <input type="file" id="combineFileInput" accept=".mydre" multiple style="display: none;">
 
                     <!-- Files List -->
-                    <div id="combineFilesList" class="files-list"></div>
+                    <div id="combineFilesList" class="files-list">
+                        <!-- Files will be listed here with icons and status indicators -->
+                    </div>
 
                     <!-- Workspaces Grid -->
                     <div id="workspacesGrid" class="workspaces-grid" style="display: none;">
-                        <h3>Workspaces to Combine</h3>
+                        <h3>Workspaces to Upload to</h3>
                         <div class="mdl-grid grid-header">
                             <div class="mdl-cell mdl-cell--5-col">Workspace Name</div>
                             <div class="mdl-cell mdl-cell--5-col">Uploader Name</div>
                             <div class="mdl-cell mdl-cell--2-col">Actions</div>
                         </div>
-                        <div id="workspacesList"></div>
+                        <div id="workspacesList">
+                            <!-- Workspaces will be listed here -->
+                        </div>
                     </div>
 
                     <!-- Combine Form -->
@@ -68,8 +72,8 @@
         <button type="button" class="mdl-button close" id="cancelButton">Cancel</button>
     </div>
 </dialog>
-{% endblock %} 
+{% endblock %}
 
 {% block page_scripts %}
-    <script src="{{ url_for('static', path='/js/combine-form.js') }}"></script>
+<script src="{{ url_for('static', path='/js/combine-form.js') }}"></script>
 {% endblock %} 

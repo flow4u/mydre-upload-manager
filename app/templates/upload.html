@@ -19,15 +19,12 @@
                 <div id="filesList" class="files-list">
                     <!-- Files will be listed here -->
                 </div>
-
-                <!-- Upload Button -->
-                <div class="mdl-card__actions">
-                    <button id="uploadButton" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
-                        Upload
-                    </button>
-                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{{ url_for('static', path='/js/upload-form.js') }}"></script>
 {% endblock %} 

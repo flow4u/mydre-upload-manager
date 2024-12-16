@@ -56,17 +56,20 @@
 .file-upload-area {
     border: 2px dashed #ccc;
     border-radius: 4px;
-    padding: 20px;
+    padding: 12px;
     text-align: center;
     cursor: pointer;
     margin-bottom: 16px;
     transition: all 0.3s ease;
     background-color: #fafafa;
-    min-height: 100px;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .file-upload-area:hover,
@@ -76,15 +79,15 @@
 }
 
 .file-upload-area i {
-    font-size: 36px;
+    font-size: 24px;
     color: #757575;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .file-upload-area p {
     margin: 0;
     color: #757575;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .selected-file {
@@ -381,4 +384,16 @@ input[type="file"] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Reduce width of both drag and drop areas */
+#dropZone, #dataDropZone {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Reduce height of drag and drop areas in upload page */
+#dropZone {
+    min-height: 60px;  /* Reduced from default 100px */
 }

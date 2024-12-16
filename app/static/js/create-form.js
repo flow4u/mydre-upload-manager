@@ -311,8 +311,7 @@ class CreateForm {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Decryption failed: ${response.statusText}`);
+                throw new Error('Decryption failed');
             }
 
             const result = await response.json();
@@ -324,8 +323,7 @@ class CreateForm {
 
         } catch (error) {
             console.error('Decryption error:', error);
-            this.updateFileStatus(fileName, false);
-            alert(`Decryption failed: ${error.message}`);
+            this.updateFileStatus(fileName, false, true);
         }
     }
 
@@ -369,11 +367,29 @@ class CreateForm {
             const element = document.getElementById(id);
             if (element) {
                 element.value = value;
-                // Add is-dirty class to parent container to show the field is populated
                 const container = element.closest('.mdl-textfield');
                 if (container) {
                     container.classList.add('is-dirty');
                     container.classList.add('is-focused');
+                    
+                    // Remove any error states that might cause red lines
+                    container.classList.remove('is-invalid');
+                    
+                    // Style the input field and lines with Material Design blue
+                    element.style.borderBottomColor = 'rgb(63, 81, 181)';
+                    element.style.color = 'rgb(63, 81, 181)';
+                    
+                    // Style the label
+                    const label = container.querySelector('.mdl-textfield__label');
+                    if (label) {
+                        label.style.color = 'rgb(63, 81, 181)';
+                    }
+                    
+                    // Style all divider lines, including the error line
+                    const dividers = container.querySelectorAll('.mdl-textfield__bottom-line, .mdl-textfield__error');
+                    dividers.forEach(divider => {
+                        divider.style.backgroundColor = 'rgb(63, 81, 181)';
+                    });
                 }
                 console.log(`Set ${id} to:`, value);
             } else {
@@ -399,7 +415,7 @@ class CreateForm {
         }
     }
 
-    updateFileStatus(fileName, success) {
+    updateFileStatus(fileName, success, clickable = false) {
         const fileElement = document.getElementById('selectedFile');
         if (!fileElement) {
             console.error('Selected file element not found');
@@ -414,7 +430,22 @@ class CreateForm {
         statusIcon.textContent = success ? 'check_circle' : 'error';
         statusIcon.style.color = success ? 'green' : 'red';
         statusIcon.style.display = 'inline';
-        console.log(`Updated file status: ${success ? 'success' : 'error'}`);
+        
+        if (!success && clickable) {
+            statusIcon.style.cursor = 'pointer';
+            statusIcon.title = 'Click to retry PIN';
+            statusIcon.onclick = () => {
+                if (this.pinDialog) {
+                    document.getElementById('currentFileName').textContent = fileName;
+                    document.getElementById('filePin').value = ''; // Clear previous PIN
+                    this.pinDialog.showModal();
+                }
+            };
+        } else {
+            statusIcon.style.cursor = 'default';
+            statusIcon.title = success ? 'Successfully decrypted' : 'Decryption failed';
+            statusIcon.onclick = null;
+        }
     }
 
     // ... rest of the class implementation ...
