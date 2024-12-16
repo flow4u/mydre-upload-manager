@@ -65,6 +65,8 @@ class Upload:
 
     def file2(self, local_file_path):
         # Check if file exists before proceeding
+        print(f'{local_file_path=}')
+        print(f'{os.path.exists(local_file_path)=}')
         if not os.path.exists(local_file_path):
             raise FileNotFoundError(f"File not found: {local_file_path}")
             

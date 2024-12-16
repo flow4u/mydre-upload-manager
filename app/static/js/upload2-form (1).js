@@ -12,7 +12,6 @@ class Upload2FileHandler {
         } else {
             this.initialize();
         }
-        this.initializeUploadButton();
     }
 
     initialize() {
@@ -32,13 +31,6 @@ class Upload2FileHandler {
 
         this.initializePinDialog();
         this.loadExistingFiles();
-    }
-
-    initializeUploadButton() {
-        const uploadButton = document.getElementById('upload2-submit');
-        if (uploadButton) {
-            uploadButton.addEventListener('click', () => this.handleUpload());
-        }
     }
 
     async loadExistingFiles() {
@@ -287,33 +279,56 @@ class Upload2FileHandler {
                 fileInfo.status = 'success';
                 fileInfo.data = result.data;
                 
+                // Parse the JSON string if it's a string
                 let workspacesData = typeof result.data === 'string' ? 
                     JSON.parse(result.data) : result.data;
                 
                 console.log('Parsed workspaces data:', workspacesData);
 
                 if (workspacesData && workspacesData.workspaces) {
+                    // Get workspace names
                     const workspaceNames = Object.keys(workspacesData.workspaces);
                     console.log('Found workspace names:', workspaceNames);
 
+                    // Log each workspace name individually
                     workspaceNames.forEach(name => {
-                        const workspaceInfo = workspacesData.workspaces[name];
-                        console.log(`Adding workspace to grid: ${name}`, workspaceInfo);
-
-                        const workspaceId = `${name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                        this.workspaces.set(workspaceId, {
-                            name: name,
-                            key: workspaceInfo.workspace_key,
-                            subscription: workspaceInfo.subscription_key,
-                            uploader_name: workspaceInfo.uploader_name
-                        });
-                        
-                        console.log(`Added workspace with uploader_name:`, this.workspaces.get(workspaceId));
-                        this.selectedWorkspaces.add(workspaceId);
+                        console.log('Workspace found:', name);
+                        console.log('Workspace details:', workspacesData.workspaces[name]);
                     });
 
+                    // Remove existing workspaces from this key file
+                    for (const [id, workspace] of this.workspaces.entries()) {
+                        if (workspace.fromKeyFile === fileName) {
+                            this.workspaces.delete(id);
+                        }
+                    }
+
+                    // Add each workspace
+                    workspaceNames.forEach(workspaceName => {
+                        const workspaceInfo = workspacesData.workspaces[workspaceName];
+                        if (workspaceInfo) {
+                            console.log(`Adding workspace to grid: ${workspaceName}`);
+
+                            const workspaceId = `${workspaceName}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                            this.workspaces.set(workspaceId, {
+                                name: workspaceName,
+                                key: workspaceInfo.workspace_key || '',
+                                subscription: workspaceInfo.subscription_key || '',
+                                uploader: workspaceInfo.uploader_name || '',
+                                fromKeyFile: fileName
+                            });
+                        }
+                    });
+
+                    console.log('Final workspaces map:', this.workspaces);
                     this.updateWorkspaceGrid();
+                } else {
+                    console.warn('No valid workspaces data found:', workspacesData);
+                    fileInfo.status = 'error';
                 }
+            } else {
+                fileInfo.status = 'error';
+                console.error(`Failed to decrypt ${fileName}:`, result.message || 'Invalid data structure');
             }
             
             this.updateKeyFilesGrid();
@@ -361,15 +376,25 @@ class Upload2FileHandler {
             checkbox.className = 'mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect';
             checkbox.innerHTML = `
                 <input type="checkbox" class="mdl-checkbox__input" 
-                       ${this.selectedWorkspaces.has(id) ? 'checked' : ''}>
+                       ${this.selectedWorkspaces.has(id) || true ? 'checked' : ''}>
             `;
+            
+            // Add checkbox event listener
+            checkbox.querySelector('input').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.selectedWorkspaces.add(id);
+                } else {
+                    this.selectedWorkspaces.delete(id);
+                }
+                console.log('Selected workspaces:', Array.from(this.selectedWorkspaces));
+            });
             
             checkboxCell.appendChild(checkbox);
             
-            // Create the rest of the row with uploader_name
+            // Create the rest of the row
             row.innerHTML = `
                 <div class="grid-cell workspace-name">${workspace.name}</div>
-                <div class="grid-cell uploader-name">${workspace.uploader_name || ''}</div>
+                <div class="grid-cell uploader-name">${workspace.uploader}</div>
                 <div class="grid-cell workspace-key" style="width: 1px; overflow: hidden;">${workspace.key}</div>
                 <div class="grid-cell subscription-key" style="width: 1px; overflow: hidden;">${workspace.subscription}</div>
                 <div class="grid-cell">
@@ -386,6 +411,9 @@ class Upload2FileHandler {
 
             // Initialize MDL checkbox
             componentHandler.upgradeElement(checkbox);
+            
+            // Add to selected workspaces by default
+            this.selectedWorkspaces.add(id);
         });
     }
 
@@ -395,7 +423,7 @@ class Upload2FileHandler {
             name: workspaceName,
             key: workspaceInfo.workspace_key,
             subscription: workspaceInfo.subscription_key,
-            uploader_name: workspaceInfo.uploader_name
+            uploader: workspaceInfo.uploader_name
         });
         // Add to selected workspaces by default
         this.selectedWorkspaces.add(workspaceId);
@@ -524,65 +552,6 @@ class Upload2FileHandler {
         } catch (error) {
             console.error('Delete failed:', error);
             alert('Failed to delete file: ' + error.message);
-        }
-    }
-
-    async handleUpload() {
-        try {
-            // Get selected workspaces
-            const selectedWorkspaces = Array.from(this.selectedWorkspaces)
-                .map(id => this.workspaces.get(id))
-                .filter(workspace => workspace); // Filter out any undefined
-
-            // Get selected files
-            const selectedFiles = Array.from(this.selectedFiles)
-                .map(fileName => this.dataFilesDict[fileName])
-                .filter(file => file); // Filter out any undefined
-
-            if (selectedWorkspaces.length === 0) {
-                console.error('No workspaces selected');
-                return;
-            }
-
-            if (selectedFiles.length === 0) {
-                console.error('No files selected');
-                return;
-            }
-
-            console.log('Starting upload for workspaces:', selectedWorkspaces);
-            console.log('Files to upload:', selectedFiles);
-
-            // Upload to each selected workspace
-            for (const workspace of selectedWorkspaces) {
-                const uploadData = {
-                    workspace_name: workspace.name,
-                    workspace_key: workspace.key,
-                    subscription_key: workspace.subscription,
-                    uploader_name: workspace.uploader_name,
-                    files: selectedFiles
-                };
-
-                console.log('Upload data being sent:', uploadData); // Debug log
-
-                const response = await fetch('/api/v1/upload2/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(uploadData)
-                });
-
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.detail || 'Upload failed');
-                }
-                console.log(`Upload result for workspace ${workspace.name}:`, result);
-            }
-
-            console.log('All uploads completed');
-
-        } catch (error) {
-            console.error('Upload failed:', error);
         }
     }
 }
